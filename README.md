@@ -1,121 +1,128 @@
 # When2Meet MCP Server
 
-A Model Context Protocol (MCP) server that helps users interact with When2Meet scheduling services. This server provides tools to retrieve event details, parse natural language availability descriptions, and automatically mark availability on When2Meet websites.
+An AI-powered scheduling assistant that automates When2Meet availability marking through the Model Context Protocol (MCP). This tool helps users extract event details, select time slots, and automatically mark availability on When2Meet scheduling polls.
 
-## Installation
+## Features
+
+- 🔍 **Extract Event Details**: Automatically scrape and parse When2Meet events 
+- 🗣️ **Smart Time Selection**: Select time slots using natural language, codes, or direct timestamps
+- 🤖 **Automated Availability Marking**: Mark your availability without manual clicking
+- 🔌 **MCP Integration**: Connect with any AI assistant that supports the [Model Context Protocol](https://modelcontextprotocol.io/)
+
+## Quick Start
+
+### Installation
 
 ```bash
+git clone https://github.com/joyce-yuan/when2meet-mcp.git
+cd when2meet-mcp
 npm install
 ```
 
-Required dependencies:
-- @modelcontextprotocol/sdk
+### Running the MCP Server
+
+```bash
+node when2meet-server.js
+```
+
+### Running the MCP Client for Testing
+
+```bash
+node client.js
+```
+
+## Supported Tools
+
+### 1. `get-event-details`
+
+Extracts information from any When2Meet URL.
+
+```javascript
+// Example response
+{
+  "name": "Team Meeting",
+  "dateRange": "April 7-9, 2025",
+  "availableTimeslots": {
+    // Structured time slot data with timestamps
+  }
+}
+```
+
+### 2. `generate-availability-prompt`
+
+Creates a structured selection prompt with all available time slots.
+
+```
+[d0t0] 9:00 AM (1744549200)
+[d0t1] 9:15 AM (1744550100)
+```
+
+### 3. `parse-availability-selections`
+
+Converts selections into actual timestamps using multiple input formats:
+- Slot codes (`d0t0 d1t2`)
+- Time patterns (`morning0 day1`)
+- Direct timestamps (`1744549200, 1744550100`)
+
+### 4. `mark-when2meet-availability`
+
+Automatically marks your availability on When2Meet using browser automation.
+
+## Example Client Usage
+
+```javascript
+const { Client } = require("@modelcontextprotocol/sdk/client/index.js");
+const { StdioClientTransport } = require("@modelcontextprotocol/sdk/client/stdio.js");
+
+// Create client transport
+const transport = new StdioClientTransport({
+  command: "node",
+  args: ["when2meet-server.js"]
+});
+
+// Initialize client
+const client = new Client(
+  { name: "when2meet-client", version: "1.0.0" },
+  { capabilities: { prompts: {}, resources: {}, tools: {} } }
+);
+
+// Connect and use tools
+await client.connect(transport);
+
+// Get event details
+const eventDetails = await client.callTool({
+  name: "get-event-details",
+  arguments: { eventUrl: "https://www.when2meet.com/your-event-id" }
+});
+
+// Mark availability
+await client.callTool({
+  name: "mark-when2meet-availability", 
+  arguments: {
+    eventUrl: "https://www.when2meet.com/your-event-id",
+    userName: "Your Name",
+    timestamps: [1744549200, 1744550100]
+  }
+});
+```
+
+## Use Cases
+
+- **AI Assistant Integration**: Let AI assistants handle scheduling for you
+- **Automated Scheduling**: Schedule meetings without manual intervention
+- **Natural Language Scheduling**: Express availability in plain English
+- **Bulk Availability Marking**: Mark multiple time slots at once
+
+## Requirements
+
+- Node.js 18+
+- @modelcontextprotocol/sdk (^1.8.0)
 - puppeteer
 - zod
 
-## Running the Server
+## License
 
-```bash
-node when2meet-server.js
-```
+MIT
 
-This starts the MCP server using stdio transport, making it compatible with any MCP client.
-
-## Available Tools
-
-### 1. get-event-details
-
-Retrieves information about a When2Meet event from its URL.
-
-**Input:**
-- `eventUrl`: String - The full URL of the When2Meet event
-
-**Output:**
-- Event name
-- Date range
-- Available time slots formatted by day
-- URL information
-
-### 2. parse-availability-text
-
-Converts natural language availability descriptions into timestamps that can be used to mark availability.
-
-**Input:**
-- `availabilityText`: String - Natural language description (e.g., "I'm available on Monday afternoons and all day Wednesday")
-- `eventDetails`: Object - The event details from get-event-details
-
-**Output:**
-- Parsed timestamps that match the described availability
-
-### 3. mark-when2meet-availability
-
-Marks specific time slots as available on the When2Meet website.
-
-**Input:**
-- `eventUrl`: String - The When2Meet URL
-- `userName`: String - Name to use for the When2Meet login
-- `password`: String (optional) - Password if required
-- `timestamps`: Array of Numbers - The timestamps to mark as available
-
-**Output:**
-- Count of successfully marked time slots
-- Result URL
-
-## Example Usage with an MCP Client
-
-```javascript
-const { McpClient } = require('@modelcontextprotocol/sdk/client/mcp.js');
-const { StdioClientTransport } = require('@modelcontextprotocol/sdk/client/stdio.js');
-const { spawn } = require('child_process');
-
-async function main() {
-  // Start the when2meet server as a child process
-  const serverProc = spawn('node', ['when2meet.js'], { stdio: ['pipe', 'pipe', 'inherit'] });
-  
-  // Create client that talks to the server
-  const transport = new StdioClientTransport(serverProc.stdout, serverProc.stdin);
-  const client = new McpClient();
-  await client.connect(transport);
-  
-  // Get details about a When2Meet event
-  const eventDetails = await client.callTool("get-event-details", {
-    eventUrl: "https://www.when2meet.com/?29973029-asio2"
-  });
-  
-  console.log(`Event: ${eventDetails.name}`);
-  console.log(`Date Range: ${eventDetails.dateRange}`);
-  
-  // Parse natural language availability
-  const availabilityResult = await client.callTool("parse-availability-text", {
-    availabilityText: "I can do Monday afternoons and all day Wednesday",
-    eventDetails: eventDetails
-  });
-  
-  console.log(`Parsed ${availabilityResult.timestamps.length} time slots`);
-  
-  // Mark availability on When2Meet
-  const markResult = await client.callTool("mark-when2meet-availability", {
-    eventUrl: "https://www.when2meet.com/?29973029-asio2",
-    userName: "TestUser",
-    timestamps: availabilityResult.timestamps
-  });
-  
-  console.log(`Marked ${markResult.markedCount} slots as available`);
-  
-  // Clean up
-  serverProc.kill();
-}
-
-main().catch(console.error);
-```
-
-## Testing
-
-For debugging, there's a test function that can be run directly:
-
-```bash
-# Uncomment the testWithSpecificTimestamps() call and comment out the main() call
-node when2meet-server.js
-```
-
-This will test the server with specific timestamps on a test When2Meet URL.
+## Upcoming Integrations
+- Support for Google Calendar direct scheduling
