@@ -7,6 +7,7 @@
 
 const { McpServer } = require("@modelcontextprotocol/sdk/server/mcp.js");
 const { StdioServerTransport } = require("@modelcontextprotocol/sdk/server/stdio.js");
+const { HttpServerTransport } = require("@modelcontextprotocol/sdk/server/http.js");
 const puppeteer = require("puppeteer");
 const { z } = require("zod");
 
@@ -786,9 +787,58 @@ async function markWhen2MeetAvailability(url, userName, password = '', timestamp
 
 // Start the server with stdio transport
 async function main() {
+  // Start with stdio transport for local development
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.log("When2Meet MCP server started");
+  console.log("When2Meet MCP server started with stdio transport");
+  
+  // Add HTTP server for Render deployment
+  const http = require('http');
+  const fs = require('fs');
+  const path = require('path');
+  const PORT = process.env.PORT || 3000;
+  
+  const httpServer = http.createServer((req, res) => {
+    // Handle MCP requests at /mcp endpoint
+    if (req.url === '/mcp') {
+      // Let the HttpServerTransport handle this request
+      return;
+    }
+    else if (req.url === '/health') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ status: 'ok', service: 'when2meet-mcp' }));
+    } else if (req.url === '/' || req.url === '/index.html') {
+      // Serve the HTML file
+      const filePath = path.join(__dirname, 'public', 'index.html');
+      fs.readFile(filePath, (err, content) => {
+        if (err) {
+          res.writeHead(500);
+          res.end(`Error loading index.html: ${err.message}`);
+          return;
+        }
+        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.end(content);
+      });
+    } else {
+      res.writeHead(404);
+      res.end();
+    }
+  });
+  
+  // Start HTTP server
+  httpServer.listen(PORT, () => {
+    console.log(`HTTP server listening on port ${PORT}`);
+  });
+  
+  // Set up HTTP transport for MCP
+  const httpTransport = new HttpServerTransport({
+    server: httpServer,
+    path: "/mcp"
+  });
+  
+  // Connect the server to the HTTP transport
+  await server.connect(httpTransport);
+  console.log("MCP server connected to HTTP transport at /mcp endpoint");
 }
 
 // By default, run the MCP server

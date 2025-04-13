@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>When2Meet MCP Server</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #333;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        .card {
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        code {
+            background-color: #f1f1f1;
+            padding: 2px 4px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        pre {
+            background-color: #f1f1f1;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .tool {
+            margin-bottom: 30px;
+        }
+        .tool h3 {
+            color: #3498db;
+        }
+    </style>
+</head>
+<body>
+    <h1>When2Meet MCP Server</h1>
+    
+    <div class="card">
+        <p>This is an AI-powered scheduling assistant that automates When2Meet availability marking through the Model Context Protocol (MCP).</p>
+        <p>The server is running and ready to accept MCP client connections.</p>
+    </div>
+    
+    <h2>Available Tools</h2>
+    
+    <div class="tool">
+        <h3>1. get-event-details</h3>
+        <p>Extracts information from any When2Meet URL.</p>
+        <pre><code>{
+  "name": "get-event-details",
+  "arguments": { 
+    "eventUrl": "https://www.when2meet.com/your-event-id"
+  }
+}</code></pre>
+    </div>
+    
+    <div class="tool">
+        <h3>2. generate-availability-prompt</h3>
+        <p>Creates a structured selection prompt with all available time slots.</p>
+        <pre><code>{
+  "name": "generate-availability-prompt",
+  "arguments": {
+    "eventDetails": { /* Event details from get-event-details */ }
+  }
+}</code></pre>
+    </div>
+    
+    <div class="tool">
+        <h3>3. parse-availability-selections</h3>
+        <p>Converts selections into actual timestamps using multiple input formats.</p>
+        <pre><code>{
+  "name": "parse-availability-selections",
+  "arguments": {
+    "selections": "d0t0 d1t2",
+    "promptData": { /* Data from generate-availability-prompt */ }
+  }
+}</code></pre>
+    </div>
+    
+    <div class="tool">
+        <h3>4. mark-when2meet-availability</h3>
+        <p>Automatically marks your availability on When2Meet using browser automation.</p>
+        <pre><code>{
+  "name": "mark-when2meet-availability",
+  "arguments": {
+    "eventUrl": "https://www.when2meet.com/your-event-id",
+    "userName": "Your Name",
+    "timestamps": [1744549200, 1744550100]
+  }
+}</code></pre>
+    </div>
+    
+    <h2>How to Connect</h2>
+    <div class="card">
+        <p>To connect to this MCP server, use the MCP client library:</p>
+        <pre><code>const { Client } = require("@modelcontextprotocol/sdk/client/index.js");
+const transport = new HttpClientTransport({
+  url: "https://your-render-url.onrender.com/mcp"
+});
+
+const client = new Client(
+  { name: "your-client", version: "1.0.0" },
+  { capabilities: { prompts: {}, resources: {}, tools: {} } }
+);
+
+await client.connect(transport);</code></pre>
+    </div>
+</body>
+</html>
