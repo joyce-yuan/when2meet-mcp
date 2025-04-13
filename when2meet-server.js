@@ -38,13 +38,45 @@ server.tool(
       
       const eventDetails = await getWhen2MeetEventDetails(eventUrl);
       
-      return {
+      // Create a more detailed content response
+      let contentText = `Event: ${eventDetails.name}\nDates: ${eventDetails.dateRange}\n`;
+      
+      // Add formatted availability information if available
+
+      
+      
+      // Directly unravel all the data needed by generate-availability-prompt
+      // const result = {
+      //   content: [{
+      //     type: "text",
+      //     text: contentText
+      //   }],
+      //   name: eventDetails.name,
+      //   dateRange: eventDetails.dateRange,
+      //   url: eventDetails.url
+      // };
+      
+      // // Add timeslot data directly to the top level
+      // if (eventDetails.availableTimeslots) {
+      //   result.availableTimeslots = eventDetails.availableTimeslots;
+      //   result.dayGroups = eventDetails.availableTimeslots.dayGroups;
+      //   result.allTimeslots = eventDetails.availableTimeslots.allTimeslots;
+      //   result.formattedAvailability = eventDetails.availableTimeslots.formattedAvailability;
+      // }
+
+      // Convert eventDetails object to a string before returning
+      const eventDetailsString = JSON.stringify(eventDetails);
+
+      // Directly unravel all the data needed by generate-availability-prompt
+      const result = {
         content: [{
           type: "text",
-          text: `Event: ${eventDetails.name}, Dates: ${eventDetails.dateRange}`
+          text: eventDetailsString
         }],
-        ...eventDetails
+        eventDetailsString: eventDetailsString
       };
+
+      return result;
     } catch (error) {
       return {
         content: [{
